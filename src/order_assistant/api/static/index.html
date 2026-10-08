@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Assistant</title>
+<style>
+  /* Colours are CSS variables; the dark-mode block below only swaps their values. */
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c1f23; --muted:#6b7280; --accent:#2f6fed; --bot:#eef1f6; --border:#e1e4ea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14161a; --card:#1d2026; --text:#e7e9ee; --muted:#9aa1ad; --accent:#6a9bff; --bot:#272b33; --border:#2f343d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text);
+         display:flex; justify-content:center; padding:16px; }
+  .card { width:100%; max-width:640px; background:var(--card); border:1px solid var(--border);
+          border-radius:12px; padding:16px; }
+  h1 { font-size:18px; margin:0 0 12px; }
+  .hidden { display:none; }
+  input, button { font:inherit; padding:10px 12px; border-radius:8px; border:1px solid var(--border);
+                  background:var(--card); color:var(--text); }
+  button { background:var(--accent); color:#fff; border:none; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  #login form, #composer { display:flex; gap:8px; flex-wrap:wrap; }
+  #login input { flex:1 1 180px; }
+  #log { height:55vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .msg { padding:8px 12px; border-radius:10px; max-width:85%; white-space:pre-wrap; }
+  .user { align-self:flex-end; background:var(--accent); color:#fff; }
+  .bot { align-self:flex-start; background:var(--bot); }
+  .note { color:var(--muted); font-size:13px; }
+  #composer input { flex:1; }
+  #error { color:#d33; font-size:14px; min-height:20px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Order &amp; Shipment Assistant</h1>
+
+  <section id="login">
+    <p class="note">Demo accounts: test1@example.com / test2@example.com (password: see README)</p>
+    <form id="loginForm">
+      <input id="email" type="email" placeholder="Email" required autocomplete="username">
+      <input id="password" type="password" placeholder="Password" required autocomplete="current-password">
+      <button type="submit">Log in</button>
+    </form>
+  </section>
+
+  <section id="chat" class="hidden">
+    <div id="log"></div>
+    <form id="composer">
+      <input id="message" placeholder="Ask about an order, refund or return..." maxlength="500" required>
+      <button id="send" type="submit">Send</button>
+    </form>
+  </section>
+
+  <div id="error"></div>
+</div>
+
+<script>
+  // The token lives only in this variable (not localStorage), so it disappears on refresh.
+  let token = null;
+  let history = [];                       // last turns, sent with each message so the bot has context
+  const $ = (id) => document.getElementById(id);   // tiny shortcut for getElementById
+
+  function addMessage(text, who) {
+    const div = document.createElement("div");
+    div.className = "msg " + who;
+    div.textContent = text;              // textContent, never innerHTML: replies cannot inject HTML
+    $("log").appendChild(div);
+    $("log").scrollTop = $("log").scrollHeight;
+  }
+
+  // Back to the login screen (used on logout and when the token expires).
+  function showLogin(msg) {
+    token = null; history = [];
+    $("chat").classList.add("hidden");
+    $("login").classList.remove("hidden");
+    $("error").textContent = msg || "";
+  }
+
+  // ---- Login: POST /login, keep the returned JWT in memory only.
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();             // stop the browser's default full-page form submit
+    $("error").textContent = "";
+    const res = await fetch("/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("email").value, password: $("password").value }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $("error").textContent = data.error || "Login failed"; return; }
+    token = data.access_token;
+    $("password").value = "";
+    $("login").classList.add("hidden");
+    $("chat").classList.remove("hidden");
+    addMessage("Hi! Ask me about an order, a delay, a refund or a return.", "bot");
+  });
+
+  // ---- Chat: POST /chat with the token. The server decides WHO we are from the token;
+  //      the page never sends a customer id.
+  $("composer").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = $("message").value.trim();
+    if (!text) return;
+    $("message").value = ""; $("send").disabled = true;
+    addMessage(text, "user");
+
+    // 429 (rate limit) and other errors fall through to the generic message below.
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ message: text, history: history.slice(-6) }),
+    });
+    // 401 = missing/expired token -> ask the user to log in again.
+    if (res.status === 401) { showLogin("Session expired. Please log in again."); return; }
+    const data = await res.json();
+    $("send").disabled = false;
+    if (!res.ok) { addMessage(data.error || "Something went wrong.", "bot"); return; }
+
+    addMessage(data.reply, "bot");
+    if (data.escalated) addMessage("A human agent will follow up.", "bot");
+    history.push({ role: "user", content: text }, { role: "assistant", content: data.reply });
+  });
+</script>
+</body>
+</html>

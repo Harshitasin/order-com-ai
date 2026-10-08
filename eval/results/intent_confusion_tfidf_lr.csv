@@ -1,0 +1,10 @@
+,pred_order_status,pred_delay_reason,pred_refund_status,pred_return_eligibility,pred_policy_question,pred_list_orders,pred_human_escalation,pred_out_of_scope,pred_adversarial
+true_order_status,9,8,0,0,0,1,0,0,6
+true_delay_reason,4,14,1,0,0,0,0,0,0
+true_refund_status,2,2,14,0,0,0,2,0,0
+true_return_eligibility,2,0,0,17,0,0,0,0,0
+true_policy_question,0,0,2,1,7,0,0,0,0
+true_list_orders,0,0,0,0,0,9,1,0,0
+true_human_escalation,2,0,2,0,0,0,10,0,1
+true_out_of_scope,0,1,0,2,2,0,1,6,0
+true_adversarial,6,0,0,0,0,1,0,1,10

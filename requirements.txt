@@ -1,0 +1,12 @@
+# Runtime libraries (what the app needs to run).
+# Install:  pip install -r requirements.txt
+# Version ranges match pyproject.toml; the tested versions are in the comments.
+
+flask>=3.0                  # web framework (tested 3.1.3)
+flask-jwt-extended>=4.6     # JWT login tokens (tested 4.7.4)
+flask-limiter>=3.5          # rate limiting (tested 4.1.1)
+werkzeug>=3.0               # password hashing, used by Flask (tested 3.1.9)
+pymysql>=1.1                # MySQL driver (tested 1.2.3)
+python-dotenv>=1.0          # loads the .env file (tested 1.2.4)
+groq>=0.11                  # Groq API client / LLM (tested 1.7.0)
+gunicorn>=22; sys_platform != "win32"   # production server, Linux/macOS/Docker only

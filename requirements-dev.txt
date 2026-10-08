@@ -1,0 +1,5 @@
+# Runtime + tests + seed script.
+# Install:  pip install -r requirements-dev.txt
+-r requirements.txt
+pytest>=8                   # test runner (tested 9.1.1)
+faker>=24                   # fake data for scripts/seed_data.py (tested 40.41.0)

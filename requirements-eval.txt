@@ -1,0 +1,6 @@
+# Only for the eval/ scripts (intent comparison with a trained model).
+# Install:  pip install -r requirements-eval.txt
+-r requirements.txt
+scikit-learn>=1.4
+pandas>=2.1
+matplotlib>=3.8

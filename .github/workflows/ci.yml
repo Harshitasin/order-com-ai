@@ -1,0 +1,26 @@
+name: CI
+
+# Run on every push and on every pull request.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip                       # reuse downloaded packages between runs
+      - run: pip install -e ".[dev]"
+      # No database and no API key are needed: unit tests use fakes, and the
+      # integration tests skip themselves when MySQL is unreachable.
+      - run: pytest -v
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t order-assistant .
